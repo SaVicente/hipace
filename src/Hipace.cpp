@@ -92,6 +92,7 @@ Hipace::Hipace () :
     pph.query("external_Ez_slope", m_external_Ez_slope);
     pph.query("external_Ez_uniform", m_external_Ez_uniform);
     pph.query("explicit", m_explicit);
+    pph.query("NewInitialGuess", m_initialGuess);
     pph.query("MG_tolerance_rel", m_MG_tolerance_rel);
     pph.query("MG_tolerance_abs", m_MG_tolerance_abs);
 
@@ -647,18 +648,19 @@ Hipace::ExplicitSolveBxBy (const int lev)
     // Here you should call m_fields.InitialBfieldGuess and related functions as done in
     // Hipace::PredictorCorrectorLoopToSolveBxBy below
 
-    amrex::Real relative_Bfield_error = m_fields.ComputeRelBFieldError(
-        m_fields.getSlices(lev, WhichSlice::Previous1),
-        m_fields.getSlices(lev, WhichSlice::Previous1),
-        m_fields.getSlices(lev, WhichSlice::Previous2),
-        m_fields.getSlices(lev, WhichSlice::Previous2),
-        Comps[WhichSlice::Previous1]["Bx"], Comps[WhichSlice::Previous1]["By"],
-        Comps[WhichSlice::Previous2]["Bx"], Comps[WhichSlice::Previous2]["By"],
-        Geom(lev));
+    if (m_initialGuess){
+      amrex::Real relative_Bfield_error = m_fields.ComputeRelBFieldError(
+          m_fields.getSlices(lev, WhichSlice::Previous1),
+          m_fields.getSlices(lev, WhichSlice::Previous1),
+          m_fields.getSlices(lev, WhichSlice::Previous2),
+          m_fields.getSlices(lev, WhichSlice::Previous2),
+          Comps[WhichSlice::Previous1]["Bx"], Comps[WhichSlice::Previous1]["By"],
+          Comps[WhichSlice::Previous2]["Bx"], Comps[WhichSlice::Previous2]["By"],
+          Geom(lev));
 
-    /* Guess Bx and By */
-    // The objetive is to tune m_predcorr_B_error_tolerance
-    m_fields.InitialBfieldGuess(relative_Bfield_error, m_predcorr_B_error_tolerance, lev);
+      m_fields.InitialBfieldGuess(relative_Bfield_error, m_predcorr_B_error_tolerance, lev);
+
+    }
 
     m_mlmg->solve({&BxBy}, {&S}, m_MG_tolerance_rel, m_MG_tolerance_abs);
 
